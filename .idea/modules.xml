@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ProjectModuleManager">
+    <modules>
+      <module fileurl="file://$PROJECT_DIR$/../dataset_transform/.idea/dataset_transform.iml" filepath="$PROJECT_DIR$/../dataset_transform/.idea/dataset_transform.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../dom_tree_traversal/.idea/dom_tree_traversal.iml" filepath="$PROJECT_DIR$/../dom_tree_traversal/.idea/dom_tree_traversal.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../wdc-dataset/.idea/wdc-dataset.iml" filepath="$PROJECT_DIR$/../wdc-dataset/.idea/wdc-dataset.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/wpd-ext.iml" filepath="$PROJECT_DIR$/.idea/wpd-ext.iml" />
+    </modules>
+  </component>
+</project>

@@ -1,0 +1,24 @@
+TODO soon
+
+
+text_content()만 쓸 것.
+
+근데 정답을알려줄때 같은 string이 여러번 나오면 어떤건 아니고 어떤건 맞는지 어떻게 알려주나..
+- 데이터셋의 한계라고 본다.
+- 어쩔 수 없으니 일단 해 보자.
+
+Shrinked Tree Inspector 구현.
+
+
+TODO later:
+apply k crossfold validation.
+result auto visualization module.
+extracted된거 test시에는 contain xpath too.
+apply tensorboard
+shrinktree recovery mechanism
+- 나중에 xpath 뽑을 때 tree shrink한 거 다시 inverse해야 함.
+
+
+TODO optimization
+- tree shrink한거 저장해서 시간 단축하기. (caching)
+    - sequence generate하는 데 그렇게 오래 걸리지는 않으므로 일단은 진행해도 될 듯 함.
