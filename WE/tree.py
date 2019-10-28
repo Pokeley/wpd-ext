@@ -192,10 +192,10 @@ def sequenceGenerator(DOMs, labels, maxSubtreeHeight = 2):
         _generateSearchDict(label, attrAsKeyDict, valueAsKeyDict)
 
         # Debug
-        for k in attrAsKeyDict.keys():
-            print(k, attrAsKeyDict[k])
-        for k in valueAsKeyDict.keys():
-            print(k, valueAsKeyDict[k])
+        # for k in attrAsKeyDict.keys():
+        #     print(k, attrAsKeyDict[k])
+        # for k in valueAsKeyDict.keys():
+        #     print(k, valueAsKeyDict[k])
 
         for leaf in leaves:
             neiNodes = _neighborSearch(leaf, maxSubtreeHeight)
@@ -206,12 +206,12 @@ def sequenceGenerator(DOMs, labels, maxSubtreeHeight = 2):
 
             assert len(neiNodes) == len(neiLabels)
 
-            print(leaf.text_content().strip(), neiLabels)
-            print([node.text_content().strip() for node in neiNodes])
-
-            print('-'*100)
-
-        exit(0)
+        #     print(leaf.text_content().strip(), neiLabels)
+        #     print([node.text_content().strip() for node in neiNodes])
+        #
+        #     print('-'*100)
+        #
+        # exit(0)
 
     return (nodeSequence, labelSequence)
 
