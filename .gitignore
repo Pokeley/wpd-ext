@@ -1,4 +1,5 @@
 /venv
-/embed
+/embed/*.vec
+/embed/*.zip
 /.idea
 .DS_Store
