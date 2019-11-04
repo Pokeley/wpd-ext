@@ -1,0 +1,7 @@
+Word Embeddings
+
+- wiki-news-300d-1M.vec.zip
+-- https://dl.fbaipublicfiles.com/fasttext/vectors-english/wiki-news-300d-1M.vec.zip
+
+- crawl-300d-2M.vec.zip
+-- https://dl.fbaipublicfiles.com/fasttext/vectors-english/crawl-300d-2M.vec.zip
