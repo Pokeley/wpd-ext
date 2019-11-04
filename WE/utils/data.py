@@ -119,7 +119,7 @@ class DataLoader():
         rawDataList = []
 
         for file in fileList:
-            fp = open(file, 'r')
+            fp = open(file, 'r', encoding='utf-8')
             dataList = json.load(fp)
             for dat in dataList:
                 rawDataList.append(dat)
