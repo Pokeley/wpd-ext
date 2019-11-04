@@ -8,7 +8,9 @@ htmlPath = './dataset/fextraction-subset-450/'
 exportPath = './resultTmp/'
 
 a = DataLoader(debug = True)
-trainSet, testSet = a.loadfromFile(['./dataset/변환_dataset_tableonly/all_450_table.json',] , 0.8, True)
+trainSet, testSet = a.loadfromFile(['./dataset/변환_dataset_tableonly/all_450_table.json',]
+                                   , trainRatio=.8
+                                   , splitDomain=True)
 
 # get each set into html / label.
 trainInput = a.extractInputHTML(trainSet)
