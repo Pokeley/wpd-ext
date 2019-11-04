@@ -4,17 +4,15 @@ from WE.utils.evaluate import *
 from WE.extractor import Extractor
 import time
 
-print('')
-htmlPath = '../wdc-dataset/fextraction-subset-450/'
+htmlPath = './dataset/fextraction-subset-450/'
 exportPath = './resultTmp/'
 
 a = DataLoader(debug = True)
-trainSet, testSet = a.loadfromFile(['../dataset_transform/res3.json',] , 0.8, True)
+trainSet, testSet = a.loadfromFile(['./dataset/변환_dataset_tableonly/all_450_table.json',] , 0.8, True)
 
 # get each set into html / label.
 trainInput = a.extractInputHTML(trainSet)
 trainOutput = a.extractOutputAVPair(trainSet)
-print(trainInput[0])
 testInput = a.extractInputHTML(testSet)
 testOutput = a.extractOutputAVPair(testSet)
 
@@ -22,7 +20,8 @@ trainTree = a.loadDOMTree(trainInput, htmlPath, True)
 testTree = a.loadDOMTree(testInput, htmlPath, True)
 
 ### Hyperparameters ###
-batchSize = 7       # 1 : sg, -1 : full-batch
+batchSize = 1   # 1 : sg, -1 : full-batch
+                # fix!!!!!!
 trainEpoch = 100
 
 batchedTrainTree, batchTrainOutput = a.batchifyData(trainTree, trainOutput, batch_size = batchSize)
@@ -38,7 +37,7 @@ extr = Extractor(model, debug = True)
 ##            Train            ##
 #################################
 
-debug = True
+debug = False
 print("\n\n\n> Training " + '-'*50 )
 startTime = time.time()
 
@@ -62,6 +61,8 @@ for epoch in range(trainEpoch):                              # iter EPOCH
           % (epoch+1, time.time() - lastEpochTime, time.time() - startTime) )
     # report epoch accuracy
 
+    # TODO remove.
+    break
 print("\n\n\n> Test Result " + '-'*50 )
 
 #test
