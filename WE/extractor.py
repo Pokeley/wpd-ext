@@ -135,7 +135,7 @@ class Extractor():
             # orf / attention layer 올리기
             # sequence 묶어서 한 batch로 만드는 기능 : pckedsequence 사용
             # 프로그램 실행 시 어떤 파일에 대해 parameter 결과 보여주고 extraction 해 주는 기능 구현.
-            # 결과 visualizer attach하기.
+            # 결과 visualizer attach하기. ( nodeid 붙은 놈으로 하기 / 이 때는 xpath도 같이 추출할 수 있어야 함)
 
             ### Train.
             self.model.zero_grad()
