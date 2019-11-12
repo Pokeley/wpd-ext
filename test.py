@@ -39,7 +39,7 @@ extr = Extractor(model, debug = True)
 ##            Train            ##
 #################################
 
-debug = False
+debug = True
 print("\n\n\n> Training " + '-'*50 )
 startTime = time.time()
 
@@ -54,8 +54,8 @@ for epoch in range(trainEpoch):                              # iter EPOCH
         y_pairs, modelAcc = extr.trainAndExtract(x_dom, y_pairs_label)
         P, R, Fscore = getExtractionPRF(y_pairs, y_pairs_label)
         if debug:
-            print('>> Batch %3d / %3d | P : %1.3f , R : %1.3f , F-score : %1.3f'
-                  % (batchId+1, batchNum, P, R, Fscore) )
+            print('>> Batch %3d / %3d | Acc : %1.3f, P : %1.3f , R : %1.3f , F-score : %1.3f'
+                  % (batchId+1, batchNum, modelAcc, P, R, Fscore) )
         extr.optimize()
 
     # Evaluate.
@@ -64,7 +64,7 @@ for epoch in range(trainEpoch):                              # iter EPOCH
     # report epoch accuracy
 
     # TODO remove.
-    break
+
 print("\n\n\n> Test Result " + '-'*50 )
 
 #test

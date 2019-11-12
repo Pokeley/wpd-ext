@@ -20,7 +20,12 @@ class Extractor():
         self.modelName = model
         self.embedDict = None
     #    self.embedDict = KeyedVectors.load_word2vec_format('embed/wiki-news-300d-1M.vec')
-        self.model = model_1_1031
+
+
+        # MODEL
+        self.model = model1()
+        self.loss_function = nn.NLLLoss()
+        self.optimizer = optim.SGD(self.model.parameters(), lr = 0.1)
 
         print("> Text Embedding loaded.")
 
@@ -69,7 +74,7 @@ class Extractor():
         minlen = min( 4, len(words))
         embedsForAverage = []
 
-        return torch.randint(0, 1, (1, 1, 300), device=DEVICE)
+        return torch.randint(0, 1, (1, 1, 300), dtype=torch.float)
 
         """
         for word in words:
@@ -92,11 +97,14 @@ class Extractor():
         
         return meanEmbedding
         """
+    def one_hot(self, x, class_cnt):
+        return torch.eye(class_cnt)[x,:]
 
     def trainAndExtract(self, x_doms, y_pairs_label):
 
         batch_size = 1
         B = 1
+        NUM_CLASS = 3
 
         ### Generating input / output sequence for subproblems.
         #nodeSeq, labelSeq = sequenceGenerator(x_doms, y_pairs_label)
@@ -104,7 +112,9 @@ class Extractor():
 
         assert len(x_seq) == len(y_seq)
 
-        ### -- Embed the input, Encode the output(one-hot encode)
+        ### -- 한 site에 대해 돌리는 것임.
+
+        loss_accum = 0.0
         for idx in range(len(x_seq)):
             data = x_seq[idx]
             label = y_seq[idx]
@@ -114,28 +124,36 @@ class Extractor():
 
             if len(embed) == 0:
                 continue
-                
 
+            sequence = torch.cat(embed, 0)
+            label = torch.tensor(label, dtype= torch.long )
+            # (seqsize * 3)
 
-            
+            # TODO 수 ~ 금요일.
+            # parameter 저장하는 기능 꼭 만들기.
+            # 실제 string extract하고 실제 데이터랑 비교하는 부분 돌리기.
+            # orf / attention layer 올리기
+            # sequence 묶어서 한 batch로 만드는 기능 : pckedsequence 사용
+            # 프로그램 실행 시 어떤 파일에 대해 parameter 결과 보여주고 extraction 해 주는 기능 구현.
+            # 결과 visualizer attach하기.
 
-        # TODO batch 단위가 무엇인가?
-        # 일단 한 사이트 내에서 batch 단위로 묶어서 가야됨...
-        # optimize를 이 안에서 돌리고, 결과는 보고만 할것
-
-        
             ### Train.
-            
+            self.model.zero_grad()
 
+            scores = self.model(sequence)
+
+            loss = self.loss_function(scores, label)
+            loss.backward()
+
+            self.optimizer.step()
+
+            loss_accum += loss.item()
 
         ### Evaluate, Save loss.
 
+        modelAcc = loss_accum / len(x_seq) if len(x_seq) is not 0 else 0;
 
-        ### Aggregating results of subproblems.
-            # single batch 가정하고 한 html에 대해서 들어왔다고 생각해, 모두 aggregate하자.
-
-        ### Report aggreagted results and loss of the subproblem.
-        return y_pairs_label, 1
+        return y_pairs_label, modelAcc
 
 
     def evaluateAndExtract(self, x_dom, y_pairs_label):
@@ -149,21 +167,3 @@ class Extractor():
     def _forward(self):
         pass
 
-class NaiveModel(nn.Module):
-
-    def __init__(self, input_size, hidden_size):
-        super(NaiveModel, self).__init__()
-        self.hidden_size = hidden_size
-
-        # TODO ????
-        self.embedding = nn.Embedding(input_size, hidden_size)
-        self.gru = nn.GRU(hidden_size, hidden_size)
-
-    def forward(self, input_data, hidden):
-        embedded = self.embedding(input_data).view(1,1,-1)  # dimension chek
-        output = embedded
-        output, hidden = self.gru(output, hidden)
-        return output, hidden
-
-    def initHidden(self):                                   # check, should it be outside?
-        return torch.zeros(1, 1, self.hidden_size, device = DEVICE)

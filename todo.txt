@@ -8,6 +8,15 @@ Shrinked Tree Inspector 구현.
 Machine learning model 돌리기
 일단은 single batch로 사용한다.
 
+Attention model
+https://pytorch.org/tutorials/intermediate/seq2seq_translation_tutorial.html
+
+GloVE
+https://medium.com/@martinpella/how-to-use-pre-trained-word-embeddings-in-pytorch-71ca59249f76
+CRF
+https://pytorch-crf.readthedocs.io/en/stable/
+
+
 
 TODO later:
 result auto visualization module.
