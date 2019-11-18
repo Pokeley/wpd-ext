@@ -1,10 +1,14 @@
 
+import re
+
 ### evaluate.py
 
 def _regularizeString(string):
     return string.strip().strip(':').strip(';')
 
 def _strcmp(str1: str, str2: str) -> bool:
+    str1 = " ".join(re.split("[^a-zA-Z0-9]*", str1))
+    str2 = " ".join(re.split("[^a-zA-Z0-9]*", str2))
     if str1.strip() == str2.strip(): return True
     else: return False
 
@@ -36,8 +40,8 @@ def getExtractionPRF(outs, golds):
             if found: pass
             else : FN += 1
 
-    P = TP / (TP+FP)
-    R = TP / (TP+FN)
-    F1 = 2 * (P*R) / (P+R)
+    P = 0.0 if TP+FP == 0 else TP / (TP+FP)
+    R = 0.0 if TP+FN == 0 else TP / (TP+FN)
+    F1 = 0.0 if P+R == 0.0 else 2 * (P*R) / (P+R)
 
     return P, R, F1

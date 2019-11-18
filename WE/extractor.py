@@ -11,6 +11,7 @@ from .tree import sequenceGenerator
 from .models.structuredData import *
 
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+print('DEVICE={}'.format(DEVICE))
 
 class Extractor():
 
@@ -23,8 +24,11 @@ class Extractor():
 
 
         # MODEL
+        weights = [1.0, 1.0, 100000000.0]
+        weights = torch.FloatTensor(weights)
+
         self.model = model1()
-        self.loss_function = nn.NLLLoss()
+        self.loss_function = nn.NLLLoss(weight=weights)
         self.optimizer = optim.SGD(self.model.parameters(), lr = 0.1)
 
         print("> Text Embedding loaded.")
@@ -36,6 +40,7 @@ class Extractor():
 
         dom = x_doms[0]
         pairs = y_pairs_label[0]
+
         keys = [ " ".join(re.split("[^a-zA-Z0-9]*", kv[0])) for kv in pairs ]
         values = [ " ".join(re.split("[^a-zA-Z0-9]*", kv[1])) for kv in pairs ]
 
@@ -54,9 +59,9 @@ class Extractor():
                     else:
                         st = ''
 
-                    if st in keys:              # Key
+                    if st != '' and st in keys:              # Key
                         y_elems.append(0)
-                    elif st in values:          # Value
+                    elif st != '' and st in values:          # Value
                         y_elems.append(1)
                     else:                       # None
                         y_elems.append(2)
@@ -97,73 +102,105 @@ class Extractor():
         
         return meanEmbedding
         """
+
     def one_hot(self, x, class_cnt):
         return torch.eye(class_cnt)[x,:]
 
-    def trainAndExtract(self, x_doms, y_pairs_label):
-
-        batch_size = 1
-        B = 1
-        NUM_CLASS = 3
+    def trainAndExtract(self, x_doms, y_pairs_label, backprop = True):
 
         ### Generating input / output sequence for subproblems.
         #nodeSeq, labelSeq = sequenceGenerator(x_doms, y_pairs_label)
+
+        # now its only <table> only.
         x_seq, y_seq = self.structuredData(x_doms, y_pairs_label)
 
         assert len(x_seq) == len(y_seq)
 
         ### -- 한 site에 대해 돌리는 것임.
 
-        loss_accum = 0.0
+        modelError = 0
+        seq_size = []
+        label_list = []
+        seq_list = []
+
+        # pad and batchify sequences.
         for idx in range(len(x_seq)):
             data = x_seq[idx]
             label = y_seq[idx]
 
-            embed = [ self.getPhraseEmbedding(x).view(1, 1, -1) for x in data ]
-                # [ (1, 1, 300), ]
+            #print(data, label)
+
+            embed = [ self.getPhraseEmbedding(x).view(1, -1) for x in data ]
+                # [ (1, 1, 300), (1, 1, 300), ...... ]
 
             if len(embed) == 0:
                 continue
 
-            sequence = torch.cat(embed, 0)
-            label = torch.tensor(label, dtype= torch.long )
-            # (seqsize * 3)
+            sequence = torch.cat(embed, 0) # (L, D)
+            label = torch.tensor(label, dtype= torch.long ) # (L, )
 
-            # TODO 수 ~ 금요일.
-            # parameter 저장하는 기능 꼭 만들기.
-            # 실제 string extract하고 실제 데이터랑 비교하는 부분 돌리기.
-            # orf / attention layer 올리기
-            # sequence 묶어서 한 batch로 만드는 기능 : pckedsequence 사용
-            # 프로그램 실행 시 어떤 파일에 대해 parameter 결과 보여주고 extraction 해 주는 기능 구현.
-            # 결과 visualizer attach하기. ( nodeid 붙은 놈으로 하기 / 이 때는 xpath도 같이 추출할 수 있어야 함)
+            seq_list.append(sequence)
+            seq_size.append(label.size()[0])
+            label_list.append(label)
+
+        batch_size = len(seq_list)
+        if batch_size > 0:
+            batched_seq = nn.utils.rnn.pad_sequence(seq_list) # (maxL, B, D)
 
             ### Train.
             self.model.zero_grad()
+            output = self.model(batched_seq)
 
-            scores = self.model(sequence)
+            # Loss
+            agg_loss = None
+            for idx in range(batch_size):
+                loss = self.loss_function(output[:seq_size[idx],idx,:], label_list[idx])
+            if not agg_loss:
+                agg_loss = loss
+            else:
+                agg_loss += loss
 
-            loss = self.loss_function(scores, label)
-            loss.backward()
+            agg_loss /= batch_size
 
-            self.optimizer.step()
+            if backprop:
+                agg_loss.backward()
+                self.optimizer.step()
 
-            loss_accum += loss.item()
+            ### Evaluate, Save model, save loss.
+            modelError = agg_loss.item()
 
-        ### Evaluate, Save loss.
+            """ Extract based on result. """
+            ### Extract here. ###
 
-        modelAcc = loss_accum / len(x_seq) if len(x_seq) is not 0 else 0;
+            for idx in range(batch_size):
+                prediction = torch.argmax( output[:seq_size[idx],idx,:], dim = 1).tolist()
+                print(prediction)
 
-        return y_pairs_label, modelAcc
+                keyTurn = True # if true, find key, false find value.
+                keys = []
+                values = []
+                for idxx, l in enumerate(prediction):
+                    if l == 2:
+                        continue
+                    elif l == 0: # key
+                        if keyTurn:
+                            keys.append(idxx)
+                    else:       # value
+                        if not keyTurn:
+                            values.append(idxx)
+
+            #####################
+            return [[]], modelError
+
+        else: # case : nothing to extract.
+            return [[]], -1
 
 
     def evaluateAndExtract(self, x_dom, y_pairs_label):
-
-        # model.eval()
-        return 1, 1
+        return self.trainAndExtract(x_dom, y_pairs_label, backprop=False)
 
     def optimize(self, ):
         return
 
     def _forward(self):
         pass
-
