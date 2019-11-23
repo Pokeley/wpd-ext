@@ -13,14 +13,18 @@ from .models.structuredData import *
 DEVICE = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print('DEVICE={}'.format(DEVICE))
 
+
+
 class Extractor():
 
     def __init__(self, model, debug = False):
 
+        self.FIRST_BACKWARD = True
+
         self.debug = debug
         self.modelName = model
         self.embedDict = None
-    #    self.embedDict = KeyedVectors.load_word2vec_format('embed/wiki-news-300d-1M.vec')
+        self.embedDict = KeyedVectors.load_word2vec_format('embed/wiki-news-300d-1M.vec')
 
 
         # MODEL
@@ -29,7 +33,7 @@ class Extractor():
 
         self.model = model1()
         self.loss_function = nn.NLLLoss(weight=weights)
-        self.optimizer = optim.SGD(self.model.parameters(), lr = 0.1)
+        self.optimizer = optim.Adam(self.model.parameters(), lr = 1)
 
         print("> Text Embedding loaded.")
 
@@ -79,29 +83,33 @@ class Extractor():
         minlen = min( 4, len(words))
         embedsForAverage = []
 
-        return torch.randint(0, 1, (1, 1, 300), dtype=torch.float)
+        # test.
+        #return torch.randint(0, 1, (1, 1, 300), dtype=torch.float)
 
-        """
+
         for word in words:
             cleaned_word = " ".join(re.split("[^a-zA-Z0-9]*", word))
             cleaned_word = cleaned_word.strip()
             if len(cleaned_word) == 0:
                 continue
+
+            embedding = None
             try:
                 embedding = self.embedDict[cleaned_word]
             except:
                 embedding = self.embedDict['UNK']
 
+
             embedsForAverage.append(torch.tensor(embedding))
 
-        # TODO embedding ==> RuntimeError: stack expects a non-empty TensorList
+        meanEmbed = None
+        if len(embedsForAverage) > 0:
+            meanEmbed =  torch.mean(torch.stack(embedsForAverage), 0)
+        else:
+            meanEmbed =  torch.tensor(self.embedDict['NONE'])
 
-        meanEmbedding = torch.mean(torch.stack(embedsForAverage)) if len(words) > 0 \
-                                                                  else self.embedDict['NONE']
-
-        
-        return meanEmbedding
-        """
+        # print(meanEmbed.size())
+        return meanEmbed
 
     def one_hot(self, x, class_cnt):
         return torch.eye(class_cnt)[x,:]
@@ -145,11 +153,18 @@ class Extractor():
 
         batch_size = len(seq_list)
         if batch_size > 0:
-            batched_seq = nn.utils.rnn.pad_sequence(seq_list) # (maxL, B, D)
+
+            # TODO maxseqsize = 6
+            seq_list.append( torch.zeros( (6, 300) ))
+
+            # maxL fixed to 6.
+            batched_seq = nn.utils.rnn.pad_sequence(seq_list) # (maxL, B+1, D)
+            batched_seq = batched_seq[:, :-1, :]              # (maxL, B, D)
 
             ### Train.
-            self.model.zero_grad()
-            output = self.model(batched_seq)
+            self.optimizer.zero_grad()
+
+            output = self.model(batched_seq).view(-1, batch_size, 3)
 
             # Loss
             agg_loss = None
@@ -161,39 +176,46 @@ class Extractor():
                 agg_loss += loss
 
             agg_loss /= batch_size
-
-            if backprop:
-                agg_loss.backward()
-                self.optimizer.step()
-
-            ### Evaluate, Save model, save loss.
             modelError = agg_loss.item()
 
-            """ Extract based on result. """
-            ### Extract here. ###
+            if backprop:
+                #agg_loss += 1.0-rate
+                if self.FIRST_BACKWARD :
+                    agg_loss.backward()
+                    self.FIRST_BACKWARD =True
+                else :
+                    agg_loss.backward()
 
+                self.optimizer.step()
+
+
+            """ Extract based on result. """
+            dotrain = True
+            ### Extract here. ###
+            right = 0
+            wrong = 0
             for idx in range(batch_size):
                 prediction = torch.argmax( output[:seq_size[idx],idx,:], dim = 1).tolist()
-                print(prediction)
+                # print(torch.tensor(prediction))
+                # print(label_list[idx])
+                if torch.equal(torch.tensor(prediction), label_list[idx]):
+                    right+=1
+                else :
+                    wrong += 1
 
-                keyTurn = True # if true, find key, false find value.
-                keys = []
-                values = []
-                for idxx, l in enumerate(prediction):
-                    if l == 2:
-                        continue
-                    elif l == 0: # key
-                        if keyTurn:
-                            keys.append(idxx)
-                    else:       # value
-                        if not keyTurn:
-                            values.append(idxx)
+                # print(prediction)
+            rate = (right) / (right+wrong)
+
+            ### Evaluate, Save model, save loss.
+
 
             #####################
-            return [[]], modelError
+            #print("** - " , right, wrong,)
+
+            return [[]], modelError, rate
 
         else: # case : nothing to extract.
-            return [[]], -1
+            return [[]], -1, 0
 
 
     def evaluateAndExtract(self, x_dom, y_pairs_label):

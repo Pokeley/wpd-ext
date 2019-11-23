@@ -3,6 +3,11 @@ from WE.utils.data import DataLoader
 from WE.utils.evaluate import *
 from WE.extractor import Extractor
 import time
+from tensorboardX import SummaryWriter
+
+
+summary = SummaryWriter('./tflog/')
+
 
 htmlPath = './dataset/fextraction-subset-450/'
 exportPath = './resultTmp/'
@@ -38,9 +43,10 @@ extr = Extractor(model, debug = True)
 
 
 
-
 debug = False
 startTime = time.time()
+print('>> Train started.')
+
 
 for epoch in range(trainEpoch):                              # iter EPOCH
 
@@ -52,12 +58,14 @@ for epoch in range(trainEpoch):                              # iter EPOCH
 
     agg_batchLoss = 0.0
     actualValidData = 0
+    agg_rate = 0.0
+
     for batchId in range(batchNum) :                             # iter BATCH
         x_dom = batchedTrainTree[batchId]
         y_pairs_label = batchTrainOutput[batchId]
 
         # Train.
-        y_pairs, batchLoss = extr.trainAndExtract(x_dom, y_pairs_label)
+        y_pairs, batchLoss, rate = extr.trainAndExtract(x_dom, y_pairs_label)
         if batchLoss != -1:
             P, R, Fscore = getExtractionPRF(y_pairs, y_pairs_label)
             if debug:
@@ -65,6 +73,7 @@ for epoch in range(trainEpoch):                              # iter EPOCH
                       % (batchId + 1, batchNum, batchLoss, P, R, Fscore))
 
             agg_batchLoss += batchLoss
+            agg_rate += rate
             actualValidData += 1
         else:
             if debug :
@@ -73,6 +82,10 @@ for epoch in range(trainEpoch):                              # iter EPOCH
     print("> EPOCH %3d  |  epochTime : %6.1fs  |  totalTime : %6.1fs"
           % (epoch+1, time.time() - lastEpochTime, time.time() - startTime) )
     print("> train_batchloss : %.4f" % (agg_batchLoss / actualValidData, ))
+    print("> train_avgrate : %.4f" % ( agg_rate / actualValidData, ))
+    summary.add_scalar('tr_ba_loss', agg_batchLoss / actualValidData, epoch+1 )
+    summary.add_scalar('tr_av_rate', agg_rate / actualValidData, epoch + 1)
+
     # + report epoch acc(model) acc(real).
 
     #################################
@@ -81,18 +94,28 @@ for epoch in range(trainEpoch):                              # iter EPOCH
 
     test_agg_batchLoss = 0.0
     test_actualValidData = 0
+    test_agg_rate = 0.0
+
     for batchId in range(testBatchNum):
         x_dom = batchedTestTree[batchId]
         y_pairs_label = batchTestOutput[batchId]
 
-        y_pairs, batchLoss = extr.trainAndExtract(x_dom, y_pairs_label)
+        y_pairs, batchLoss, rate = extr.trainAndExtract(x_dom, y_pairs_label)
         if batchLoss != -1:
             P, R, Fscore = getExtractionPRF(y_pairs, y_pairs_label)
 
             test_agg_batchLoss += batchLoss
+            test_agg_rate += rate
             test_actualValidData += 1
 
+    if test_actualValidData == 0:
+        print('wrong test set')
+        exit(0)
+
     print("> test__batchloss : %.4f" % (test_agg_batchLoss / test_actualValidData,))
+    print("> test_avgrate : %.4f" % ( test_agg_rate / test_actualValidData,))
+    summary.add_scalar('te_ba_loss', test_agg_batchLoss / test_actualValidData , epoch+1 )
+    summary.add_scalar('te_av_rate', test_agg_rate / test_actualValidData, epoch + 1)
 
     # TODO
     # save average loss.
