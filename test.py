@@ -83,6 +83,7 @@ for epoch in range(trainEpoch):                              # iter EPOCH
           % (epoch+1, time.time() - lastEpochTime, time.time() - startTime) )
     print("> train_batchloss : %.4f" % (agg_batchLoss / actualValidData, ))
     print("> train_avgrate : %.4f" % ( agg_rate / actualValidData, ))
+
     summary.add_scalar('tr_ba_loss', agg_batchLoss / actualValidData, epoch+1 )
     summary.add_scalar('tr_av_rate', agg_rate / actualValidData, epoch + 1)
 
@@ -95,6 +96,7 @@ for epoch in range(trainEpoch):                              # iter EPOCH
     test_agg_batchLoss = 0.0
     test_actualValidData = 0
     test_agg_rate = 0.0
+    test_P, test_R, test_F = 0, 0, 0
 
     for batchId in range(testBatchNum):
         x_dom = batchedTestTree[batchId]
@@ -103,6 +105,9 @@ for epoch in range(trainEpoch):                              # iter EPOCH
         y_pairs, batchLoss, rate = extr.trainAndExtract(x_dom, y_pairs_label)
         if batchLoss != -1:
             P, R, Fscore = getExtractionPRF(y_pairs, y_pairs_label)
+            test_P += P
+            test_R += R
+            test_F += Fscore
 
             test_agg_batchLoss += batchLoss
             test_agg_rate += rate
@@ -112,6 +117,7 @@ for epoch in range(trainEpoch):                              # iter EPOCH
         print('wrong test set')
         exit(0)
 
+    print('> test_PRF : %.4f %.4f %.4f' % (test_P/test_actualValidData , test_R/test_actualValidData, test_F/test_actualValidData))
     print("> test__batchloss : %.4f" % (test_agg_batchLoss / test_actualValidData,))
     print("> test_avgrate : %.4f" % ( test_agg_rate / test_actualValidData,))
     summary.add_scalar('te_ba_loss', test_agg_batchLoss / test_actualValidData , epoch+1 )
