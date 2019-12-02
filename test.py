@@ -127,6 +127,7 @@ for epoch in range(trainEpoch):                              # iter EPOCH
     # save average loss.
     # if acc got better, save parameters. (write saving time...)
 
+
     # TODO
     # save everything into csv (PRF, etc..)
 

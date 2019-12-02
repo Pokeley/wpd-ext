@@ -180,16 +180,12 @@ class Extractor():
 
             if backprop:
                 #agg_loss += 1.0-rate
-                if self.FIRST_BACKWARD :
-                    agg_loss.backward()
-                    self.FIRST_BACKWARD =True
-                else :
-                    agg_loss.backward()
+                agg_loss.backward()
 
                 self.optimizer.step()
 
-
             """ Extract based on result. """
+
             dotrain = True
             ### Extract here. ###
             right = 0
@@ -198,6 +194,7 @@ class Extractor():
                 prediction = torch.argmax( output[:seq_size[idx],idx,:], dim = 1).tolist()
                 # print(torch.tensor(prediction))
                 # print(label_list[idx])
+
                 if torch.equal(torch.tensor(prediction), label_list[idx]):
                     right+=1
                 else :
@@ -206,17 +203,14 @@ class Extractor():
                 # print(prediction)
             rate = (right) / (right+wrong)
 
-            ### Evaluate, Save model, save loss.
-
-
             #####################
+
             #print("** - " , right, wrong,)
 
             return [[]], modelError, rate
 
         else: # case : nothing to extract.
             return [[]], -1, 0
-
 
     def evaluateAndExtract(self, x_dom, y_pairs_label):
         return self.trainAndExtract(x_dom, y_pairs_label, backprop=False)
