@@ -23,16 +23,15 @@ class Extractor():
 
         self.debug = debug
         self.modelName = model
-        self.embedDict = None
-        self.embedDict = KeyedVectors.load_word2vec_format('embed/wiki-news-300d-1M.vec')
 
+        self.embedDict = None
+        self.noEmbed = False
+        if not self.noEmbed:
+            self.embedDict = KeyedVectors.load_word2vec_format('embed/wiki-news-300d-1M.vec')
 
         # MODEL
-        weights = [1.0, 1.0, 100000000.0]
-        weights = torch.FloatTensor(weights)
-
         self.model = model1()
-        self.loss_function = nn.NLLLoss(weight=weights)
+        self.loss_function = nn.NLLLoss()
         self.optimizer = optim.Adam(self.model.parameters(), lr = 1)
 
         print("> Text Embedding loaded.")
@@ -84,7 +83,8 @@ class Extractor():
         embedsForAverage = []
 
         # test.
-        #return torch.randint(0, 1, (1, 1, 300), dtype=torch.float)
+        if self.noEmbed:
+            return torch.randint(0, 1, (1, 1, 300), dtype=torch.float)
 
 
         for word in words:
@@ -130,6 +130,7 @@ class Extractor():
         seq_size = []
         label_list = []
         seq_list = []
+        data_list = []
 
         # pad and batchify sequences.
         for idx in range(len(x_seq)):
@@ -146,7 +147,7 @@ class Extractor():
 
             sequence = torch.cat(embed, 0) # (L, D)
             label = torch.tensor(label, dtype= torch.long ) # (L, )
-
+            data_list.append(data)
             seq_list.append(sequence)
             seq_size.append(label.size()[0])
             label_list.append(label)
@@ -167,13 +168,19 @@ class Extractor():
             output = self.model(batched_seq).view(-1, batch_size, 3)
 
             # Loss
+
             agg_loss = None
             for idx in range(batch_size):
                 loss = self.loss_function(output[:seq_size[idx],idx,:], label_list[idx])
-            if not agg_loss:
-                agg_loss = loss
-            else:
-                agg_loss += loss
+
+                if not agg_loss:
+                    agg_loss = loss
+                else:
+                    if 2 not in label_list[idx].tolist():
+                        agg_loss += loss
+                    else:
+                        agg_loss += loss / 100
+
 
             agg_loss /= batch_size
             modelError = agg_loss.item()
@@ -188,26 +195,63 @@ class Extractor():
 
             dotrain = True
             ### Extract here. ###
+            extractedData = []
+
             right = 0
             wrong = 0
             for idx in range(batch_size):
                 prediction = torch.argmax( output[:seq_size[idx],idx,:], dim = 1).tolist()
-                # print(torch.tensor(prediction))
-                # print(label_list[idx])
+                if 1 in label_list[idx].tolist():
+                    pass
+                    #print(torch.tensor(prediction) , label_list[idx])
 
                 if torch.equal(torch.tensor(prediction), label_list[idx]):
                     right+=1
                 else :
                     wrong += 1
 
-                # print(prediction)
+                # Extract real 'data' for real.
+                seq = label_list[idx].tolist()
+                seqlen = len(seq)
+
+            #    print(len(label_list), len(seq_list), len(x_seq), batch_size)
+
+                if seqlen == 2:
+                    if (seq[0] == 0 and seq[1] == 1) and (prediction[0] == 0 and prediction[1] == 1) :
+                        extractedData.append(
+                                                (data_list[idx][0].text_content().replace('\n','').replace('\t','').strip().strip(':').strip(';'), \
+                                                data_list[idx][1].text_content().replace('\n', '').replace('\t', '').strip().strip(':').strip(';') )
+
+                                            )
+                elif seqlen == 4:
+                    if (seq[0] == 0 and seq[1] == 1) and (prediction[0] == 0 and prediction[1] == 1):
+
+                        extractedData.append(
+                            (data_list[idx][0].text_content().replace('\n', '').replace('\t', '').strip().strip(':').strip(
+                                ';'), \
+                             data_list[idx][1].text_content().replace('\n', '').replace('\t', '').strip().strip(':').strip(
+                                 ';'))
+
+                        )
+
+                    if (seq[2] == 0 and seq[3] == 1) and (prediction[2] == 0 and prediction[3] == 1):
+
+                        extractedData.append(
+                            (data_list[idx][2].text_content().replace('\n', '').replace('\t', '').strip().strip(':').strip(
+                                ';'), \
+                             data_list[idx][3].text_content().replace('\n', '').replace('\t', '').strip().strip(':').strip(
+                                 ';'))
+
+                        )
+
+                # Aggregate Extractexd data.
+            #print(extractedData)
+
             rate = (right) / (right+wrong)
 
-            #####################
+            extractedData = [extractedData, ]
 
-            #print("** - " , right, wrong,)
-
-            return [[]], modelError, rate
+            return extractedData , modelError, rate
 
         else: # case : nothing to extract.
             return [[]], -1, 0
